@@ -1,0 +1,78 @@
+---
+title: "The Evidence Synthesis 'Ecosystem'"
+output: html_document
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(scales)
+library(bubbles)
+library(RColorBrewer)
+library(tidyverse)
+library(kableExtra)
+```
+
+```{r read in and rduce lens data, echo=FALSE, warning=FALSE, message=FALSE}
+Lens_dat <- readRDS(paste0(here::here(), "/data/Lens_dat.RDS"))
+Lens_dat=Lens_dat %>% 
+  janitor::clean_names() %>% 
+  arrange(.,desc(document_count)) %>% 
+  rowid_to_column() %>%
+  mutate(percent=(document_count/sum(document_count)*100)) %>% 
+  filter(percent>0.2)
+```
+
+
+```{r lens bubbleplot reduced, echo=FALSE, message=FALSE, warning=FALSE}
+lens_bub=bubbles(
+ Lens_dat$document_count,
+ #label=NA,
+ label=abbreviate(Lens_dat$field_of_study),
+   tooltip = paste0(Lens_dat$field_of_study, " articles: ", Lens_dat$document_count),
+  color = col_factor(
+    brewer.pal(9,"Set1"),
+    factor(Lens_dat$field_of_study)
+  )(Lens_dat$field_of_study),
+  height = 800,
+  width = 800
+)
+lens_bub
+# p <- '
+# library(scales)
+# library(bubbles)
+# library(RColorBrewer)
+# bubbles(
+#    Lens_dat$document_count,
+#   label=abbreviate(Lens_dat$field_of_study),
+#    tooltip = paste0(Lens_dat$field_of_study, " articles: ", Lens_dat$document_count),
+#   color = col_factor(
+#     brewer.pal(9,"Set1"),
+#     factor(Lens_dat$field_of_study)
+#   )(Lens_dat$field_of_study),
+#   height = 800,
+#   width = 800
+# )
+# 
+# '
+#htmlwidgets::saveWidget(lens_bub, file=paste0(here::here(),"/html.widgets/lens_bub.html"))
+# rbokeh::widget2gist(p, name = "ES bubbles Lens")
+```
+Articles in each "Field of Study" category returned from a search on lens.org for "Evidence synthesis OR Evidence based". Each bubble in the plot indicates a "Field of Study" (listed in the table below; hover your mouse over a bubble on the html version to see its label) with size relative to the proportion of the total 2792068 articles within that "Field of Study". Only the top `r dim(Lens_dat)[1] ` categories are included in the plot.
+
+```{r legend reduced, echo=FALSE}
+Lens_dat %>% 
+  select(#rowid,
+    field_of_study, document_count) %>% 
+  mutate("Abbreviation"=abbreviate(field_of_study)) %>% 
+  #rename("Label"=rowid) %>% 
+  rename("Field of study"=field_of_study) %>% 
+  rename("Number of articles"= document_count) %>% 
+  
+  #htmlTable(rnames = FALSE)
+kableExtra::kbl() %>% 
+  kableExtra::kable_paper() %>%
+  kableExtra::scroll_box(width = "500px", height = "200px") #%>% 
+  #kableExtra::save_kable(file =paste0(here::here(), "/html.widgets/table1.html"), self_contained = T)
+```
